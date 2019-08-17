@@ -395,7 +395,7 @@ const HexagonLayerExample = {
 
 const TextLayerExample = {
   layer: TextLayer,
-  getData: () => dataSamples.texts,
+  getData: () => dataSamples.texts.slice(0, 2),
   propTypes: {
     fontFamily: {
       name: 'fontFamily',
@@ -459,10 +459,20 @@ const TextLayerExample = {
         change('fontSettings', {...newSettings.fontSettings, cutoff: newValue});
       }
     },
+    wordBreak: {
+      name: 'wordBreak',
+      type: 'category',
+      value: ['', 'normal', 'break-all', 'break-word', 'keep-all', 'inherit', 'initial']
+    },
     getTextAnchor: {
       name: 'textAnchor',
       type: 'category',
       value: ['start', 'middle', 'end']
+    },
+    width: {
+      name: 'width',
+      type: 'number',
+      max: 1000
     }
   },
   props: {
@@ -472,12 +482,14 @@ const TextLayerExample = {
     fontSettings: {},
     autoHighlight: true,
     pickable: true,
+    width: 1000,
+    wordBreak: '',
     highlightColor: [0, 0, 128, 128],
     getText: x => `${x.LOCATION_NAME}\n${x.ADDRESS}`,
     getPosition: x => x.COORDINATES,
     getColor: x => [153, 0, 0],
     getAngle: x => 30,
-    getTextAnchor: x => 'start',
+    getTextAnchor: x => 'middle',
     getAlignmentBaseline: x => 'center',
     getPixelOffset: x => [10, 0]
   }

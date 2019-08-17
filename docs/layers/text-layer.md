@@ -149,6 +149,18 @@ Options:
 
 `radius` and `cutoff` will be applied only when `sdf` enabled.
 
+##### `wordBreak` (String, optional)
+
+* Default: `null`
+
+CSS `word-break`. `width` has to be provided to use `wordBreak`.
+
+##### `width` (Number, optional)
+
+* Default: `null`
+
+`width` is ignored when `wordBreak` is not provided.
+
 ### Data Accessors
 
 ##### `getText` ([Function](/docs/developer-guide/using-layers.md#accessors), optional)

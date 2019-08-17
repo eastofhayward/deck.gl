@@ -1,4 +1,5 @@
 // TODO merge with icon-layer/icon-manager
+/* global document */
 import {log} from '@deck.gl/core';
 
 const MISSING_CHAR_WIDTH = 32;
@@ -6,6 +7,9 @@ const MISSING_CHAR_WIDTH = 32;
 export function nextPowOfTwo(number) {
   return Math.pow(2, Math.ceil(Math.log2(number)));
 }
+
+const AUTO_WRAPPING_DIV_STYLE = 'position: absolute; top: -999999; left: -99999; z-index: 1000;';
+const AUTO_WRAPPING_DIV_ID = 'auto-wrapping-div';
 
 /**
  * Generate character mapping table or update from an existing mapping table
@@ -69,42 +73,110 @@ export function buildMapping({
   };
 }
 
-export function transformRow(row, iconMapping, lineHeight) {
+export function autoWrapping({
+  string,
+  lineHeight,
+  width,
+  wordBreak,
+  fontSize,
+  fontFamily,
+  fontWeight,
+  textAlign
+}) {
+  const characters = Array.from(string);
+  const textDiv = document.createElement('div');
+  textDiv.id = AUTO_WRAPPING_DIV_ID;
+  textDiv.style = `
+    ${AUTO_WRAPPING_DIV_STYLE}
+    word-break: ${wordBreak};
+    lineHeight: ${lineHeight};
+    width: ${width}px;
+    font-size: ${fontSize}px;
+    font-family: ${fontFamily};
+    font-weight: ${fontWeight};
+    text-align: ${textAlign || 'left'}
+  `;
+
+  characters.map(character => {
+    const span = document.createElement('span');
+    span.innerText = character;
+    textDiv.appendChild(span);
+  });
+
+  document.body.appendChild(textDiv);
+  return textDiv;
+}
+
+export function transformRow({row, iconMapping, lineHeight, rowOffsetTop, autoWrappingDiv}) {
   let offsetLeft = 0;
   let rowHeight = 0;
 
   let characters = Array.from(row);
-  characters = characters.map((character, i) => {
-    const datum = {
-      text: character,
-      offsetLeft
-    };
 
+  characters = characters.map((character, i) => {
+    let rect = null;
+    let datum = null;
     const frame = iconMapping[character];
 
     if (frame) {
-      offsetLeft += frame.width;
-      if (!rowHeight) {
-        // frame.height should be a constant
-        rowHeight = frame.height * lineHeight;
+      if (autoWrappingDiv) {
+        const span = autoWrappingDiv.childNodes[i];
+        rect = span.getBoundingClientRect();
+
+        datum = {
+          text: character,
+          offsetTop: rowOffsetTop + rect.top,
+          offsetLeft: rect.left
+        };
+
+        offsetLeft += rect.width;
+        if (i === characters.length - 1) {
+          rowHeight = rect ? rect.bottom : 0;
+        }
+      } else {
+        datum = {
+          text: character,
+          offsetTop: rowOffsetTop,
+          offsetLeft
+        };
+
+        if (!rowHeight) {
+          rowHeight = frame.height * lineHeight;
+        }
+        offsetLeft += frame.width;
       }
     } else {
       log.warn(`Missing character: ${character}`)();
+
+      datum = {
+        text: character,
+        offsetTop: rowOffsetTop,
+        offsetLeft
+      };
+
       offsetLeft += MISSING_CHAR_WIDTH;
     }
 
     return datum;
   });
 
-  return {characters, rowWidth: offsetLeft, rowHeight};
+  return {
+    characters,
+    rowWidth: autoWrappingDiv ? autoWrappingDiv.clientWidth : offsetLeft,
+    rowHeight
+  };
 }
 
 /**
  * Transform a text paragraph to an array of characters, each character contains
- * @param paragraph {String}
- * @param lineHeight {Number} css line-height
- * @param iconMapping {Object} character mapping table for retrieving a character from font atlas
- * @param transformCharacter {Function} callback to transform a single character
+ * @param props:
+ *   - paragraph {String}
+ *   - wordBreak {String} css word-break option
+ *   - fontSize {number} css font-size
+ *   - width {number} css width of the element
+ *   - lineHeight {Number} css line-height
+ *   - iconMapping {Object} character mapping table for retrieving a character from font atlas
+ *   - transformCharacter {Function} callback to transform a single character
  * @param transformedData {Array} output transformed data array, each datum contains
  *   - text: character
  *   - index: character index in the paragraph
@@ -115,34 +187,73 @@ export function transformRow(row, iconMapping, lineHeight) {
  *   - len: length of the paragraph
  */
 export function transformParagraph(
-  paragraph,
-  lineHeight,
-  iconMapping,
-  transformCharacter,
+  {
+    paragraph,
+    iconMapping,
+    transformCharacter,
+    // styling
+    lineHeight,
+    wordBreak,
+    fontSize,
+    fontFamily,
+    fontWeight,
+    width,
+    textAlign
+  },
   transformedData
 ) {
+  if (!paragraph) {
+    return;
+  }
+
+  const wordBreakEnabled = wordBreak && width;
   const rows = paragraph.split('\n');
 
   // width and height of the paragraph
   const size = [0, 0];
-  let offsetTop = 0;
+  let rowOffsetTop = 0;
 
-  rows.forEach(row => {
-    const {characters, rowWidth, rowHeight} = transformRow(row, iconMapping, lineHeight);
+  rows.filter(row => Boolean(row)).forEach(row => {
+    let autoWrappingDiv = null;
+    if (wordBreakEnabled) {
+      autoWrappingDiv = autoWrapping({
+        string: row,
+        lineHeight,
+        width,
+        wordBreak,
+        fontSize,
+        fontFamily,
+        fontWeight,
+        textAlign
+      });
+    }
+
+    const {characters, rowWidth, rowHeight} = transformRow({
+      row,
+      iconMapping,
+      lineHeight,
+      width,
+      rowOffsetTop,
+      autoWrappingDiv
+    });
+
     const rowSize = [rowWidth, rowHeight];
 
     characters.forEach(datum => {
-      datum.offsetTop = offsetTop;
       datum.size = size;
-      datum.rowSize = rowSize;
+      datum.rowSize = datum.rowSize || rowSize;
 
       transformedData.push(transformCharacter(datum));
     });
 
-    offsetTop = offsetTop + rowHeight;
+    rowOffsetTop = rowOffsetTop + rowHeight;
     size[0] = Math.max(size[0], rowWidth);
+
+    if (autoWrappingDiv) {
+      autoWrappingDiv.remove();
+    }
   });
 
   // last row
-  size[1] = offsetTop;
+  size[1] = rowOffsetTop;
 }
