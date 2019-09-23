@@ -111,7 +111,6 @@ export default class Tile3DLayer extends CompositeLayer {
       // TODO - why do we call this here? Being "selected" should automatically add it to cache?
       tileset3d.addTileToCache(tile);
 
-      console.log(tile.fullUri);
       layerMap[tile.fullUri] = {
         layer: this._create3DTileLayer(tile),
         tile
