@@ -112,16 +112,13 @@ export default class BaseAttribute {
 
   _createBuffer() {
     // Move accessor fields to accessor object
-    const props = Object.assign(
-      {},
-      {
-        id: this.id,
-        target: this.target,
-        accessor: {
-          type: this.type
-        }
+    const props = {
+      id: this.id,
+      target: this.target,
+      accessor: {
+        type: this.type
       }
-    );
+    };
     if (Number.isFinite(props.divisor)) {
       props.accessor.divisor = props.divisor;
     }
@@ -171,25 +168,25 @@ export default class BaseAttribute {
   // https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/vertexAttribPointer
   _normalizeConstant(value) {
     switch (this.type) {
-      case GL.BYTE:
-        // normalize [-128, 127] to [-1, 1]
-        return new Float32Array(value).map(x => ((x + 128) / 255) * 2 - 1);
+    case GL.BYTE:
+      // normalize [-128, 127] to [-1, 1]
+      return new Float32Array(value).map(x => ((x + 128) / 255) * 2 - 1);
 
-      case GL.SHORT:
-        // normalize [-32768, 32767] to [-1, 1]
-        return new Float32Array(value).map(x => ((x + 32768) / 65535) * 2 - 1);
+    case GL.SHORT:
+      // normalize [-32768, 32767] to [-1, 1]
+      return new Float32Array(value).map(x => ((x + 32768) / 65535) * 2 - 1);
 
-      case GL.UNSIGNED_BYTE:
-        // normalize [0, 255] to [0, 1]
-        return new Float32Array(value).map(x => x / 255);
+    case GL.UNSIGNED_BYTE:
+      // normalize [0, 255] to [0, 1]
+      return new Float32Array(value).map(x => x / 255);
 
-      case GL.UNSIGNED_SHORT:
-        // normalize [0, 65535] to [0, 1]
-        return new Float32Array(value).map(x => x / 65535);
+    case GL.UNSIGNED_SHORT:
+      // normalize [0, 65535] to [0, 1]
+      return new Float32Array(value).map(x => x / 65535);
 
-      default:
-        // No normalization for gl.FLOAT and gl.HALF_FLOAT
-        return value;
+    default:
+      // No normalization for gl.FLOAT and gl.HALF_FLOAT
+      return value;
     }
   }
 
