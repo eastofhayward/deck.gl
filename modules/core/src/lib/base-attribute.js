@@ -79,7 +79,7 @@ export default class BaseAttribute {
 
       // Create buffer if needed
       if (!constant && this.gl) {
-        this.buffer = this.buffer || this._createBuffer(opts);
+        this.buffer = this.buffer || this._createBuffer();
         this.buffer.setData({data: value});
         this.type = this.buffer.accessor.type;
       }
@@ -110,15 +110,18 @@ export default class BaseAttribute {
     return null;
   }
 
-  _createBuffer(opts) {
+  _createBuffer() {
     // Move accessor fields to accessor object
-    const props = Object.assign({}, opts, {
-      id: this.id,
-      target: this.target,
-      accessor: {
-        type: this.type
+    const props = Object.assign(
+      {},
+      {
+        id: this.id,
+        target: this.target,
+        accessor: {
+          type: this.type
+        }
       }
-    });
+    );
     if (Number.isFinite(props.divisor)) {
       props.accessor.divisor = props.divisor;
     }
@@ -127,12 +130,6 @@ export default class BaseAttribute {
       props.accessor.size = props.size;
     }
     delete props.size;
-    if ('type' in props) {
-      delete props.type;
-    }
-    if ('normalized' in props) {
-      delete props.normalized;
-    }
 
     return new Buffer(this.gl, props);
   }
