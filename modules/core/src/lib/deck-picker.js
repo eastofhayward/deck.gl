@@ -18,7 +18,17 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-import {Framebuffer, readPixelsToArray, cssToDeviceRatio, cssToDevicePixels} from '@luma.gl/core';
+import {
+  Framebuffer,
+  Texture2D,
+  Model,
+  readPixelsToArray,
+  cssToDeviceRatio,
+  cssToDevicePixels,
+  FEATURES,
+  hasFeature
+} from '@luma.gl/core';
+import GL from '@luma.gl/constants';
 import assert from '../utils/assert';
 import PickLayersPass from '../passes/pick-layers-pass';
 import {getClosestObject, getUniqueObjects} from './picking/query-object';
@@ -120,7 +130,59 @@ export default class DeckPicker {
     const {gl} = this;
     // Create a frame buffer if not already available
     if (!this.pickingFBO) {
-      this.pickingFBO = new Framebuffer(gl);
+      this.pickingFBO = new Framebuffer(gl, {depth: false});
+
+      this.depthTexture = new Texture2D(gl, {
+        type: GL.FLOAT,
+        format: GL.DEPTH_COMPONENT32F,
+        dataFormat: GL.DEPTH_COMPONENT,
+        mipmaps: false,
+        parameters: {
+          [GL.TEXTURE_MIN_FILTER]: GL.NEAREST,
+          [GL.TEXTURE_MAG_FILTER]: GL.NEAREST,
+          [GL.TEXTURE_WRAP_S]: GL.CLAMP_TO_EDGE,
+          [GL.TEXTURE_WRAP_T]: GL.CLAMP_TO_EDGE
+        }
+      });
+
+      this.pickingFBO.attach({
+        [GL.DEPTH_ATTACHMENT]: this.depthTexture
+      });
+
+      const ext = gl.getExtension('EXT_color_buffer_float');
+      this.depthFBO = new Framebuffer(gl, {depth: false});
+
+      this.depthModel = new Model(gl, {
+        vs: `#version 300 es
+void main() {
+  gl_Position = vec4(0.0);
+}
+`,
+        fs: `#version 300 es
+precision highp float;
+uniform vec2 coordinate;
+uniform sampler2D depthTexture;
+
+out vec4 fragColor;
+
+const vec4 bitPackShift = vec4(1.0, 255.0, 65025.0, 16581375.0);
+
+void main() {
+  float depth = texelFetch(depthTexture, ivec2(coordinate), 0).r;
+  // fragColor = vec4(1.0);
+  fragColor = fract(depth * bitPackShift);
+}
+`,
+        drawMode: GL.POINTS,
+        vertexCount: 1,
+        isInstanced: true,
+        attributes: {
+          position: [0, 0]
+        },
+        uniforms: {
+          depthTexture: this.depthTexture
+        }
+      });
     }
     // Resize it to current canvas size (this is a noop if size hasn't changed)
     this.pickingFBO.resize({width: gl.canvas.width, height: gl.canvas.height});
@@ -197,6 +259,8 @@ export default class DeckPicker {
         deviceY: devicePixel[1],
         pixelRatio
       });
+
+      this._getPixelDepth(devicePixel);
 
       const processedPickInfos = this.callLayerPickingCallbacks(infos, mode);
 
@@ -315,6 +379,7 @@ export default class DeckPicker {
       sourceHeight: height,
       target: pickedColors
     });
+
     return pickedColors;
   }
 
@@ -371,5 +436,26 @@ export default class DeckPicker {
     });
 
     return unhandledPickInfos;
+  }
+
+  _getPixelDepth(pixel) {
+    this.depthModel.setUniforms({
+      coordinate: pixel
+    }).draw({
+      parameters: {
+        viewport: [0, 0, 1, 1],
+        blend: false,
+        depthTest: false
+      },
+      framebuffer: this.depthFBO
+    });
+
+    const depthValues = new Uint8Array(4);
+    readPixelsToArray(this.depthFBO, {
+      target: depthValues
+    });
+    
+    const depth = depthValues[0] + depthValues[1] / 255 + depthValues[2] / 65025 + depthValues[3] / 16581375;
+    console.log(depth);
   }
 }
