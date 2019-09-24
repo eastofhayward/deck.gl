@@ -111,24 +111,10 @@ export default class BaseAttribute {
   }
 
   _createBuffer() {
-    // Move accessor fields to accessor object
-    const props = {
+    return new Buffer(this.gl, {
       id: this.id,
-      target: this.target,
-      accessor: {
-        type: this.type
-      }
-    };
-    if (Number.isFinite(props.divisor)) {
-      props.accessor.divisor = props.divisor;
-    }
-    delete props.divisor;
-    if (Number.isFinite(props.size)) {
-      props.accessor.size = props.size;
-    }
-    delete props.size;
-
-    return new Buffer(this.gl, props);
+      target: this.target
+    });
   }
 
   // Sets all accessor props except type
