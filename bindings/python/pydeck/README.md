@@ -74,8 +74,9 @@ For more, check out the docs and Binder examples above.
 
 ### Debugging note
 
-Because pydeck uses Python renders Javascript, some errors will appear only in the Javascript console.
-If you encounter an error, open the Javascript console in your browser. This will be updated in future versions of pydeck.
+Currently, some errors will appear only in the Javascript console.
+If a visualization fails to render, open the Javascript console in your browser.
+Error handling will be expanded in future versions of pydeck.
 If you encounter an issue, file it under the [deck.gl issues page](https://github.com/uber/deck.gl/issues/new?assignees=&labels=question&template=question.md&title=)
 and include console output.
 
