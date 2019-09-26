@@ -71,7 +71,7 @@ class Deck(JSONMixin):
         if self.mapbox_key is None:
             warnings.warn(
                 'Mapbox API key is not set. This may impact available features of pydeck.', UserWarning)
-
+            
     @property
     def selected_data(self):
         return self.deck_widget.selected_data

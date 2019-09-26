@@ -21,6 +21,19 @@ Ref: http://keepachangelog.com/en/0.3.0/
 
 ### deck.gl v7.3 Prereleases
 
+#### deck.gl [v7.3.0-beta.7] - Sep 25, 2019
+
+- Always generate 64xyLow attributes for positions (#3696)
+
+#### deck.gl [v7.3.0-beta.6] - Sep 25, 2019
+
+- Fix HeatmapLayer crash in iOS (Safari) (#3681)
+
+#### deck.gl [v7.3.0-beta.5] - Sep 23, 2019
+
+- wrap accessors passed in subLayerProps (#3675)
+- Update S2 library within pydeck (#3678)
+
 #### deck.gl [v7.3.0-beta.4] - Sep 20, 2019
 
 - remove dead code (#3669)
